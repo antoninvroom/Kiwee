@@ -2,6 +2,13 @@
 
 module.exports = function(sequelize, DataTypes) {
   var User = sequelize.define('User', {
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: function() {
+        return generateMyId();
+      }
+    },
     email: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -22,10 +29,6 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    country: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
     timezone: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -39,7 +42,7 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: false,
     },
     facebookId: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.BIGINT,
       allowNull: false,
     },
     facebookToken: {
@@ -59,3 +62,16 @@ module.exports = function(sequelize, DataTypes) {
   });
   return User;
 };
+
+function generateMyId() {
+  var uuid = "", i, random;
+  for (i = 0; i < 32; i++) {
+    random = Math.random() * 16 | 0;
+
+    if (i == 8 || i == 12 || i == 16 || i == 20) {
+      uuid += "-"
+    }
+    uuid += (i == 12 ? 4 : (i == 16 ? (random & 3 | 8) : random)).toString(16);
+  }
+  return uuid;
+}

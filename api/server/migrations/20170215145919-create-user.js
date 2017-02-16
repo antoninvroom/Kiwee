@@ -5,10 +5,10 @@ module.exports = {
     queryInterface.createTable('Users', {
       id: {
         allowNull: false,
-        primaryKey: true,
         unique: true,
         type: Sequelize.UUID,
-        defaultValue: Sequelize.UUIDV4
+        defaultValue: Sequelize.UUIDV4,
+        primaryKey: true
       },
       email: {
         type: Sequelize.STRING,
@@ -30,10 +30,6 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: false
       },
-      country: {
-        type: Sequelize.STRING,
-        allowNull: false
-      },
       timezone: {
         type: Sequelize.INTEGER,
         allowNull: false
@@ -48,7 +44,7 @@ module.exports = {
         defaultValue: false
       },
       facebookId: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.BIGINT(20),
         allowNull: false
       },
       facebookToken: {
