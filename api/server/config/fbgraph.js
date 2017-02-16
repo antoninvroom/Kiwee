@@ -1,4 +1,4 @@
-var Q = require('q');
+var q = require('q');
 var graph = require('fbgraph');
 
 var facebook = {
@@ -12,35 +12,35 @@ var facebook = {
     setUp(access_token);
 
     function getFBInfo() {
-      var deferred = Q.defer();
-      graph.get("/me?fields=email,first_name,last_name,gender,verified,locale,timezone,friends,picture.width(720).height(720){url}", function(err, res) {
+      var deferred = q.defer();
+
+      graph.get("/me?fields=email,first_name,last_name,gender,verified,locale,timezone,friends,picture.width(160).height(160){url}", function(err, res) {
         if (err) deferred.reject(err);
         deferred.resolve(res);
       });
       return deferred.promise;
     }
 
-        // function handleResult(result) {
-        //     var deferred = Q.deferred();
-        //
-        //     result.posts = result.feed.data
-        //     delete result.feed.data;
-        //
-        //     result.photos = result.photos.data
-        //     delete result.photos.data;
-        //
-        //     deferred.resolve(result);
-        //
-        //     return deferred.promise
-        // }
-
-    Q.fcall(getFBInfo)
+    q.fcall(getFBInfo)
      .then(function(result) {
         callback(200, result);
      })
      .catch(function(error) {
         // Handle any error from all above steps
-        callback(400, error);
+        if (error.code == 190) {
+          // fb token expired
+          callback(401, {
+            statusCode: 401,
+            code: 190,
+            message: "Facebook Token expired or is not valid => logout the user from the app",
+            action: "logout"
+          });
+        } else {
+          console.log(error);
+          error.statusCode = error.code;
+          error.action = "logout";
+          callback(400, error);
+        }
      })
      .done();
   }

@@ -1,5 +1,5 @@
 var jwt = require('jwt-simple');
-var config = require('../../config/config');
+var config = require('../../config/config.js');
 var users = require('../controllers/users.js');
 //var graph = require('fbgraph');
 var FB = require('../config/fbgraph.js');
@@ -8,7 +8,7 @@ const User = require('../models').User;
 
 var auth = {
 
-  login: function(req, res) {
+  connect: function(req, res) {
 
     var facebook_token = req.body.facebook_token || '';
     var facebook_id = req.body.facebook_id || '';
@@ -17,119 +17,126 @@ var auth = {
       res.status(401);
       res.json({
         statusCode: 401,
-        error: "Invalid credentials"
+        error: 'Invalid credentials',
+        action: 'logout'
       });
       return;
     }
 
-    // Fire a query to your DB and check if the credentials are valid
-    var getUser = auth.getUser(facebook_token, facebook_id);
+    // On vérifie si l'utilisateur existe dans la base de données
+    FB.getFacebookInfo(facebook_token, function(statusCode, object) {
+      if (statusCode == 200) {
+        // Le token est valide, on a les données d'un utilisateur Facebook
+        console.log(object);
+        // Vérifions si l'utilisateur qu'on a avec le token est le même que l'ID renseigné (sécurité)
+        if (facebook_id != object.id) {
+          res.status(409);
+          res.json({
+            statusCode: 409,
+            message: 'Access Denied: facebook ID doesn\'t match with its token',
+            action: 'logout'
+          });
 
-    if (!getUser) { // If authentication fails, we send a 401 back
-      // We need to add the user in DB
-      // graph.setAccessToken(facebook_token);
-      // var fbUser = graph.get("/me?fields=email,first_name,last_name,gender,verified,locale,timezone,friends,picture.width(720).height(720){url}", function(fbErr, fbRes) {
-      //   return User
-      //     .create({
-      //       email: fbRes.email,
-      //       firstName: fbRes.first_name,
-      //       lastName: fbRes.last_name,
-      //       gender: fbRes.gender,
-      //       picture: fbRes.picture.data.url,
-      //       timezone: parseInt(fbRes.timezone),
-      //       locale: fbRes.locale,
-      //       verified: fbRes.verified,
-      //       facebookId: parseInt(fbRes.id),
-      //       facebookToken: facebook_token,
-      //       facebookFriends: {},
-      //       facebookSync: new Date()
-      //     })
-      //     .then(user => {
-      //       var data = genToken(user);
-      //       data.message = "New User Created!";
-      //
-      //       res.status(200);
-      //       res.json(data);
-      //     })
-      //     .catch(error => {
-      //       res.status(404);
-      //       res.json(error);
-      //     });
-      // });
-
-      var object = FB.getFacebookInfo(facebook_token, function(status, value) {
-        if (status == 200) {
-          return User
-            .create({
-              email: value.email,
-              firstName: value.first_name,
-              lastName: value.last_name,
-              gender: value.gender,
-              picture: value.picture.data.url,
-              timezone: parseInt(value.timezone),
-              locale: value.locale,
-              verified: value.verified,
-              facebookId: parseInt(value.id),
-              facebookToken: facebook_token,
-              facebookFriends: {},
-              facebookSync: new Date()
-            })
-            .then(user => {
-              var data = genToken(user);
-              data.message = "New User Created!";
-
-              res.status(200);
-              res.json(data);
-            })
-            .catch(error => {
-              res.status(404);
-              res.json(error);
-            });
-        } else {
-          res.status(404);
-          res.json(value);
+          return;
         }
-      });
 
-  //break;
-      // res.status(401);
-      // res.json({
-      //   "status": 401,
-      //   "error": "Invalid credentials"
-      // });
-      // return;
-    }
+        // Si tout est bon, on vérifie si l'utilisateur existe ou non
+        User.find({
+            where: {
+              facebookId: object.id
+            }
+          })
+          .then((user) => {
+            console.log(2);
+            if (!user) {
+              console.log(1);
+              // L'utilisateur n'existe pas, on l'enregistre
+              User.create({
+                  email: object.email,
+                  firstName: object.first_name,
+                  lastName: object.last_name,
+                  gender: object.gender,
+                  picture: object.picture.data.url,
+                  timezone: parseInt(object.timezone),
+                  locale: object.locale,
+                  verified: object.verified,
+                  facebookId: parseInt(object.id),
+                  facebookToken: facebook_token,
+                  facebookFriends: object.friends.data,
+                  facebookSync: new Date()
+                })
+                .then((user) => { // succès !
+                  var data = genToken(user);
+                  data.message = "New user created!";
+                  data.action = 'login'; // on autorise la connexion
 
-    // if (dbUserObj) {
-    //
-    //   // If authentication is success, we will generate a token
-    //   // and dispatch it to the client
-    //
-    //   res.json(genToken(dbUserObj));
-    // }
+                  res.status(200);
+                  res.json(data);
+                })
+                .catch((error) => {
+                  console.log(error);
 
-  },
+                  res.status(404);
+                  res.json(error);
+                });
 
-  getUser: function(facebook_token, facebook_id) {
-    // spoofing the DB response for simplicity
-    // var user = { // spoofing a userobject from the DB.
-    //   name: 'arvind',
-    //   role: 'admin',
-    //   username: 'arvind@myapp.com'
-    // };
+              return;
+            } else {
+              console.log(3);
+              user.update({
+                  email: object.email,
+                  picture: object.picture.data.url,
+                  verified: object.verified,
+                  facebookToken: facebook_token,
+                  facebookFriends: object.friends.data,
+                  facebookSync: new Date()
+                })
+                .then((user) => {
+                  var data = genToken(user);
+                  data.message = "User updated!";
+                  data.action = 'login';
 
-    //return user;
+                  res.status(200);
+                  res.json(data);
+                })
+                .catch((error) => {
+                  console.log(error);
+
+                  res.status(404);
+                  res.json(error);
+                });
+
+              return;
+            }
+          })
+          .catch((error) => {
+            console.log(error);
+
+            res.status(404);
+            res.json(error);
+            return;
+          });
+
+      } else {
+        // Un problème avec le token
+        res.status(statusCode);
+        res.json(object);
+        return;
+      }
+    });
+
     return;
-  },
-}
+  }
+};
 
 // private method
 function genToken(user) {
   var expires = expiresIn(7); // 7 days
   var token = jwt.encode({
-    sub: user.uid,
+    sub: user.id,
     exp: expires,
-    fb_token: user.facebook_token
+    fb_token: user.facebookToken,
+    fb_id: user.facebookId
   }, config.secretKey);
   return {
     statusCode: 200,

@@ -49,6 +49,10 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.STRING,
       allowNull: false,
     },
+    facebookFriends: {
+      type: DataTypes.ARRAY(DataTypes.JSON),
+      allowNull: false,
+    },
     facebookSync: {
       type: DataTypes.DATE,
       allowNull: false,

@@ -44,7 +44,7 @@ module.exports = {
         defaultValue: false
       },
       facebookId: {
-        type: Sequelize.BIGINT(20),
+        type: Sequelize.BIGINT,
         allowNull: false
       },
       facebookToken: {
@@ -52,9 +52,9 @@ module.exports = {
         allowNull: false
       },
       facebookFriends: {
-        type: Sequelize.JSON,
+        type: Sequelize.ARRAY(Sequelize.JSON),
         allowNull: false,
-        defaultValue: {}
+        defaultValue: []
       },
       facebookSync: {
         type: Sequelize.DATE,

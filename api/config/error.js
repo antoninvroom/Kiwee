@@ -1,5 +1,10 @@
 'use strict';
 
+/*
+ * Custom ERROR codes
+ * 190 : token facebook expiré ou non valide
+ *
+ */
 // This module is used to return custom error messages
 module.exports = function ErrorCode(status, message) {
   Error.captureStackTrace(this, this.constructor);

@@ -8,8 +8,14 @@ module.exports = function(req, res, next) {
   // a preflighted request first. This is to check if our the app
   // is safe.
 
-  // We skip the token outh for [OPTIONS] requests.
-  //if(req.method == 'OPTIONS') next();
+  if (typeof req.headers.authorization == 'undefined') {
+    res.status(404);
+    res.json({
+      statusCode: 404,
+      error: "Not Found"
+    });
+    return;
+  };
 
   //var token = (req.body && req.body.access_token) || (req.query && req.query.access_token) || req.headers['x-access-token'];
   var token = req.headers.authorization.split(' ')[1];
@@ -18,20 +24,21 @@ module.exports = function(req, res, next) {
   //if (token || key) {
   if (token) {
     try {
-      var decoded = jwt.decode(token, require('../config/secure.js')().secretKey);
+      var decoded = jwt.decode(token, require('../config/config.js').secretKey);
 
       if (decoded.exp <= Date.now()) {
         res.status(400);
         res.json({
           statusCode: 400,
-          error: "Token Expired"
+          error: 'Token Expired',
+          action: 'logout'
         });
         return;
       }
 
       // Authorize the user to see if s/he can access our resources
-      //next();
-      res.json(decoded);
+      next();
+      //res.json(decoded);
       //var dbUser = validateUser(key); // The key would be the logged in user's username
       // if (dbUser) {
       //   if ((req.url.indexOf('admin') >= 0 && dbUser.role == 'admin') || (req.url.indexOf('admin') < 0 && req.url.indexOf('/api/v1/') >= 0)) {
@@ -55,18 +62,25 @@ module.exports = function(req, res, next) {
       // }
 
     } catch (err) {
-      res.status(500);
+      // res.status(500);
+      // console.log(err);
+      // res.json({
+      //   statusCode: 500,
+      //   error: "Oops something went wrong",
+      //   debug: err.message
+      res.status(401);
       res.json({
-        statusCode: 500,
-        error: "Oops something went wrong",
-        debug: err.message
+        statusCode: 401,
+        error: 'Invalid Token',
+        action: 'logout'
       });
     }
   } else {
     res.status(401);
     res.json({
       statusCode: 401,
-      error: "Invalid Token or Key"
+      error: 'Invalid Token',
+      action: 'logout'
     });
     return;
   }

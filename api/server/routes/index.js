@@ -13,12 +13,12 @@ var discoveries = require('../controllers/discoveries.js');
 /*
  * Routes that can be accessed by any one
  */
-router.post('/auth', auth.login);
+router.post('/auth', auth.connect);
 
 /*
  * Routes that can be accessed only by autheticated users
  */
-router.get('/v1/test', function(req, res){ res.json({ message: "All is goooood" }); });
+router.get('/v1/access', function(req, res){ res.json({ message: "All is goooood" }); });
 
 // Les requêtes concernant les invitations
 router.get('/v1/requests', requests.getNews); // récupérer les dernières invitations reçues
@@ -70,7 +70,13 @@ router.get('/v1/discoveries/filter/:category', discoveries.getByFilter); // affi
 router.get('/v1/discovery/:id', discoveries.getOne); // recuperer les infos d'un endroit
 router.get('/v1/discovery/fav', discoveries.fav); // ajouter un endroit en favori
 
-
+router.all('*', function(req, res) {
+  res.statusCode = 404;
+  res.json({
+    statusCode: 404,
+    error: "Not Found"
+  });
+});
 /*
  * Routes that can be accessed only by authenticated & authorized users
  */
